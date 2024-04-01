@@ -1,0 +1,47 @@
+  version: "3"
+  services:
+    django:
+      build: .
+      container_name: Thriathlon
+      ports:
+        - "8009:8009"
+      volumes:
+        - .:/app
+        - static_volume:/usr/src/app/static
+        - media_volume:/usr/src/app/media
+
+      restart: always 
+      depends_on:
+        - pgdb
+      command: sh -c "python manage.py makemigrations && python manage.py migrate && gunicorn Triatlon.wsgi:application --bind 0.0.0.0:8009"
+
+    pgdb:
+      container_name: postgres_container
+      image: postgres:alpine
+      environment:
+        POSTGRES_DB: ${POSTGRES_DB}
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        
+      volumes:
+        - db_data:/var/lib/postgresql/data/
+      ports:
+        - "5433:5432"
+      restart: unless-stopped
+    
+    
+    nginx:
+      image: nginx
+      ports:
+        - 83:83
+      volumes:
+        - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+        - static_volume:/usr/src/app/static
+        - media_volume:/usr/src/app/media
+      depends_on:
+        - django
+
+  volumes:
+    static_volume:
+    media_volume:
+    db_data:
